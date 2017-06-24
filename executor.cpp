@@ -701,9 +701,6 @@ void executor::http_hashrate_report(std::string& out)
 
 	out.reserve(4096);
 
-	snprintf(buffer, sizeof(buffer), sHtmlCommonHeader, "Hashrate Report", "Hashrate Report");
-	out.append(buffer);
-
 	snprintf(buffer, sizeof(buffer), sHtmlHashrateBodyHigh, (unsigned int)nthd + 3);
 	out.append(buffer);
 
@@ -712,7 +709,7 @@ void executor::http_hashrate_report(std::string& out)
 	{
 		double fHps[3];
 
-		fHps[0] = telem->calc_telemetry_data(2500, i);
+		fHps[0] = telem->calc_telemetry_data(10000, i);
 		fHps[1] = telem->calc_telemetry_data(60000, i);
 		fHps[2] = telem->calc_telemetry_data(900000, i);
 
@@ -725,7 +722,12 @@ void executor::http_hashrate_report(std::string& out)
 		fTotal[1] += fHps[1];
 		fTotal[2] += fHps[2];
 
-		snprintf(buffer, sizeof(buffer), sHtmlHashrateTableRow, (unsigned int)i, num_a, num_b, num_c);
+		if(i != nthd -1)
+		{ 
+			snprintf(buffer, sizeof(buffer), sHtmlHashrateTableRowComma, (unsigned int)i, num_a, num_b, num_c);
+		}else{
+			snprintf(buffer, sizeof(buffer), sHtmlHashrateTableRow, (unsigned int)i, num_a, num_b, num_c);
+		}
 		out.append(buffer);
 	}
 
@@ -746,9 +748,9 @@ void executor::http_result_report(std::string& out)
 
 	out.reserve(4096);
 
-	snprintf(buffer, sizeof(buffer), sHtmlCommonHeader, "Result Report", "Result Report");
-	out.append(buffer);
-
+	
+	
+	
 	size_t iGoodRes = vMineResults[0].count, iTotalRes = iGoodRes;
 	size_t ln = vMineResults.size();
 
@@ -777,12 +779,17 @@ void executor::http_result_report(std::string& out)
 
 	for(size_t i=1; i < vMineResults.size(); i++)
 	{
-		snprintf(buffer, sizeof(buffer), sHtmlResultTableRow, vMineResults[i].msg.c_str(),
-			int_port(vMineResults[i].count), time_format(date, sizeof(date), vMineResults[i].time));
+		if(i != vMineResults.size() - 1){
+			snprintf(buffer, sizeof(buffer), sHtmlResultTableRowComma, i, vMineResults[i].msg.c_str(),
+				int_port(vMineResults[i].count), time_format(date, sizeof(date), vMineResults[i].time));
+		}else{
+			snprintf(buffer, sizeof(buffer), sHtmlResultTableRow, i, vMineResults[i].msg.c_str(),
+				int_port(vMineResults[i].count), time_format(date, sizeof(date), vMineResults[i].time));
+		}
 		out.append(buffer);
 	}
-
 	out.append(sHtmlResultBodyLow);
+	out.append(sHtmlResultBodyLow);// Double }} because we're empty
 }
 
 void executor::http_connection_report(std::string& out)
@@ -791,9 +798,6 @@ void executor::http_connection_report(std::string& out)
 	char buffer[4096];
 
 	out.reserve(4096);
-
-	snprintf(buffer, sizeof(buffer), sHtmlCommonHeader, "Connection Report", "Connection Report");
-	out.append(buffer);
 
 	jpsock* pool = pick_pool_by_id(dev_pool_id + 1);
 	const char* cdate = "not connected";
@@ -815,14 +819,23 @@ void executor::http_connection_report(std::string& out)
 	out.append(buffer);
 
 
-	for(size_t i=0; i < vSocketLog.size(); i++)
-	{
-		snprintf(buffer, sizeof(buffer), sHtmlConnectionTableRow,
-			time_format(date, sizeof(date), vSocketLog[i].time), vSocketLog[i].msg.c_str());
-		out.append(buffer);
+	if(vSocketLog.size() == 0){
+		out.append(sHtmlConnectionBodyLow);		
+		out.append(sHtmlConnectionBodyLow); // Double }} because we're empty
+	}else{
+		for(size_t i=0; i < vSocketLog.size(); i++)
+		{
+			if(i != vSocketLog.size() - 1){
+				snprintf(buffer, sizeof(buffer), sHtmlConnectionTableRowComma, (unsigned int)i,
+				time_format(date, sizeof(date), vSocketLog[i].time), vSocketLog[i].msg.c_str());
+			}else{
+				snprintf(buffer, sizeof(buffer), sHtmlConnectionTableRow, (unsigned int)i,
+				time_format(date, sizeof(date), vSocketLog[i].time), vSocketLog[i].msg.c_str());
+			}
+			out.append(buffer);
+		}
+		out.append(sHtmlConnectionBodyLow);
 	}
-
-	out.append(sHtmlConnectionBodyLow);
 }
 
 void executor::http_report(ex_event_name ev)
